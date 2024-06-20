@@ -1,0 +1,12 @@
+[package]
+name = "max1726x"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "max1726x"
+path = "src/lib.rs"
+
+[dependencies]
+defmt = "0.3"
+embedded-hal = { version = "1", features = ["defmt-03"] }

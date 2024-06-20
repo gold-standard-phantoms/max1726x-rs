@@ -1,0 +1,19 @@
+on: [push]
+
+name: test
+
+jobs:
+  check:
+    name: Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
