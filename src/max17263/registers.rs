@@ -9,6 +9,27 @@ impl Register {
     /// The LEDCfg1 register configures the LED driver operation. If any LED activity is initiated, the MAX17263 automatically
     /// wakes up from hibernate mode into active mode.
     pub const LED_CFG_1: u8 = 0x40;
+    /// VCell Register (09h) (page 22)
+    /// Register Type: Voltage
+    /// In multi-cell application, VCell register reports the 2.5X the voltage measured at the Cellx pin. This represents the per
+    /// cell voltage of the battery pack. In single-cell application, VCell register reports the voltage measured between BATT and
+    /// GND
+    pub const V_CELL: u8 = 0x09;
+    ///Current Register (0Ah) (page 23)
+    ///Register Type: Current
+    ///The IC measures the voltage across the sense resistor, and the result is stored as a two’s complement value in the
+    ///Current register. Voltages outside the minimum and maximum register values are reported as the minimum or maximum
+    ///value. The register value should be divided by the sense resistance to convert to amperes. The value of the sense resistor
+    ///determines the resolution and the full-scale range of the current readings. Table 9 shows range and resolution values
+    ///for typical sense resistances. This is for rechargeable applications. Non-rechargeable applications with long run-times
+    ///should generally use higher sense resistor value.
+    pub const CURRENT: u8 = 0x0A;
+
+    /// Temp Register (08h) (page 24)
+    /// Register Type: Temperature
+    /// The Temp register provides the temperature measured by the thermistor or die temperature based on the Config register
+    /// setting.
+    pub const TEMP: u8 = 0x08;
 }
 
 /// LEDCfg1 Register (40h) (page 29)
