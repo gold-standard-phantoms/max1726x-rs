@@ -114,7 +114,7 @@ where
 
     /// Read a register - return the bytes in the order that they are received (litte-endian/LSB
     /// first)
-    pub(crate) fn read_register(&mut self, register: u8) -> Result<[u8; 2], Error<E>> {
+    pub fn read_register(&mut self, register: u8) -> Result<[u8; 2], Error<E>> {
         let mut data = [0u8; 2];
         self.i2c
             .write_read(ADDR, &[register], &mut data)
@@ -123,13 +123,13 @@ where
     }
 
     /// Read a register into a u16
-    pub(crate) fn read_register_as_u16(&mut self, register: u8) -> Result<u16, Error<E>> {
+    pub fn read_register_as_u16(&mut self, register: u8) -> Result<u16, Error<E>> {
         let data = self.read_register(register)?;
         Ok((u16::from(data[1]) << 8) | u16::from(data[0]))
     }
 
     /// Read a register and convert to the given bitfield
-    pub(crate) fn read_register_as_bitfield<B>(&mut self, register: u8) -> Result<B, Error<E>>
+    pub fn read_register_as_bitfield<B>(&mut self, register: u8) -> Result<B, Error<E>>
     where
         B: From<u16>,
     {
