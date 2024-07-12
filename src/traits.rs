@@ -15,3 +15,11 @@ pub trait RegisterResolver {
     /// Time in seconds
     fn register_to_time(&self, register: u16) -> f64;
 }
+pub trait Model {
+    /// VCell Register
+    const V_CELL: u8;
+    ///Current Register
+    const CURRENT: u8;
+    /// Temp Register
+    const TEMP: u8;
+}

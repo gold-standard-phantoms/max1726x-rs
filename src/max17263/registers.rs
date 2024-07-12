@@ -3,15 +3,16 @@
 /// MAX17263 datasheet
 use modular_bitfield::prelude::*;
 
-use crate::traits::RegisterResolver;
+use crate::traits::{Model, RegisterResolver};
 
+#[derive(Debug, Clone, Copy)]
 pub struct Max17263RegisterResolver {
     r_sense: f64,
 }
 impl Max17263RegisterResolver {
     /// Initialise the register resolver.
     /// * `r_sense` - The sense resistor value (ohms)
-    pub fn new(r_sense: f64) -> Self {
+    pub const fn new(r_sense: f64) -> Self {
         Self { r_sense }
     }
 }
@@ -66,18 +67,13 @@ impl RegisterResolver for Max17263RegisterResolver {
 }
 
 pub struct Register;
-impl Register {
-    /// LEDCfg1 Register (40h) (page 29)
-    /// Initial value: 0x6070
-    /// The LEDCfg1 register configures the LED driver operation. If any LED activity is initiated, the MAX17263 automatically
-    /// wakes up from hibernate mode into active mode.
-    pub const LED_CFG_1: u8 = 0x40;
+impl Model for Register {
     /// VCell Register (09h) (page 22)
     /// Register Type: Voltage
     /// In multi-cell application, VCell register reports the 2.5X the voltage measured at the Cellx pin. This represents the per
     /// cell voltage of the battery pack. In single-cell application, VCell register reports the voltage measured between BATT and
     /// GND
-    pub const V_CELL: u8 = 0x09;
+    const V_CELL: u8 = 0x09;
     ///Current Register (0Ah) (page 23)
     ///Register Type: Current
     ///The IC measures the voltage across the sense resistor, and the result is stored as a two’s complement value in the
@@ -86,13 +82,20 @@ impl Register {
     ///determines the resolution and the full-scale range of the current readings. Table 9 shows range and resolution values
     ///for typical sense resistances. This is for rechargeable applications. Non-rechargeable applications with long run-times
     ///should generally use higher sense resistor value.
-    pub const CURRENT: u8 = 0x0A;
+    const CURRENT: u8 = 0x0A;
 
     /// Temp Register (08h) (page 24)
     /// Register Type: Temperature
     /// The Temp register provides the temperature measured by the thermistor or die temperature based on the Config register
     /// setting.
-    pub const TEMP: u8 = 0x08;
+    const TEMP: u8 = 0x08;
+}
+impl Register {
+    /// LEDCfg1 Register (40h) (page 29)
+    /// Initial value: 0x6070
+    /// The LEDCfg1 register configures the LED driver operation. If any LED activity is initiated, the MAX17263 automatically
+    /// wakes up from hibernate mode into active mode.
+    pub const LED_CFG_1: u8 = 0x40;
 }
 
 /// LEDCfg1 Register (40h) (page 29)

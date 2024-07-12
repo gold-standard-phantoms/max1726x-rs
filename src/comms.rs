@@ -7,14 +7,20 @@
 use crate::{
     error::Error,
     registers::{FStat, HibCfg, ModelCfg, OutputRegister, Register, SoftWakeup, Status, VEmpty},
+    traits::{Model, RegisterResolver},
 };
 use core::fmt::Debug;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c;
 
 #[derive(Debug, defmt::Format)]
-pub struct Max1726x<I2C> {
+pub struct Max1726x<M, I2C, R>
+where
+    R: RegisterResolver,
+{
     i2c: I2C,
+    register_resolver: R,
+    _phantom: core::marker::PhantomData<M>,
 }
 
 // The MAX1726x supports the slave address 0x6C
@@ -51,14 +57,20 @@ pub struct BatteryChargeStatus {
     tte: u16,
 }
 
-impl<I2C, E> Max1726x<I2C>
+impl<M, I2C, E, R> Max1726x<M, I2C, R>
 where
+    M: Model,
     I2C: i2c::I2c<Error = E>,
     E: i2c::Error,
+    R: RegisterResolver,
 {
     /// Create a new driver instance.
-    pub fn new(i2c: I2C) -> Self {
-        Self { i2c }
+    pub fn new(i2c: I2C, register_resolver: R) -> Self {
+        Self {
+            i2c,
+            register_resolver,
+            _phantom: core::marker::PhantomData,
+        }
     }
 
     /// Destroy driver instance, return I2C bus.
@@ -134,6 +146,21 @@ where
         B: From<u16>,
     {
         Ok(B::from(self.read_register_as_u16(register)?))
+    }
+
+    pub fn battery_voltage(&mut self) -> Result<f64, Error<E>> {
+        let register = self.read_register_as_u16(M::V_CELL)?;
+        Ok(self.register_resolver.register_to_voltage(register))
+    }
+
+    pub fn battery_current(&mut self) -> Result<f64, Error<E>> {
+        let register = self.read_register_as_u16(M::CURRENT)?;
+        Ok(self.register_resolver.register_to_current(register))
+    }
+
+    pub fn battery_temperature(&mut self) -> Result<f64, Error<E>> {
+        let register = self.read_register_as_u16(M::TEMP)?;
+        Ok(self.register_resolver.register_to_temperature(register))
     }
 
     /// Get Status register (00h)
