@@ -3,3 +3,4 @@ pub mod comms;
 pub mod error;
 pub mod max17263;
 pub mod registers;
+pub mod traits;
