@@ -148,19 +148,28 @@ where
         Ok(B::from(self.read_register_as_u16(register)?))
     }
 
+    /// Battery voltage in V
     pub fn battery_voltage(&mut self) -> Result<f64, Error<E>> {
         let register = self.read_register_as_u16(M::V_CELL)?;
         Ok(self.register_resolver.register_to_voltage(register))
     }
 
+    /// Battery charge/discharge current in A
     pub fn battery_current(&mut self) -> Result<f64, Error<E>> {
         let register = self.read_register_as_u16(M::CURRENT)?;
         Ok(self.register_resolver.register_to_current(register))
     }
 
+    /// Battery temperature in degrees C
     pub fn battery_temperature(&mut self) -> Result<f64, Error<E>> {
         let register = self.read_register_as_u16(M::TEMP)?;
         Ok(self.register_resolver.register_to_temperature(register))
+    }
+
+    /// Battery state of charge as a percentage
+    pub fn battery_state_of_charge(&mut self) -> Result<f64, Error<E>> {
+        let register = self.read_register_as_u16(OutputRegister::REP_SOC)?;
+        Ok(self.register_resolver.register_to_percentage(register))
     }
 
     /// Get Status register (00h)
