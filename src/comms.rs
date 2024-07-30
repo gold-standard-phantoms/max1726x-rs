@@ -79,12 +79,12 @@ where
     }
 
     /// Write a register - data should be written little endian/LSB first
-    pub(crate) fn write_register(&mut self, register: u8, data: u16) -> Result<(), Error<E>> {
+    pub fn write_register(&mut self, register: u8, data: u16) -> Result<(), Error<E>> {
         let payload: [u8; 3] = [register, (data & 0xFF) as u8, ((data & 0xFF00) >> 8) as u8];
         self.i2c.write(ADDR, &payload).map_err(Error::I2c)
     }
 
-    pub(crate) fn write_and_verify_register<D>(
+    pub fn write_and_verify_register<D>(
         &mut self,
         register: u8,
         data: u16,
@@ -112,7 +112,7 @@ where
         }
     }
 
-    pub(crate) fn write_bitfield_to_register<B>(
+    pub fn write_bitfield_to_register<B>(
         &mut self,
         register: u8,
         bitfield: B,
