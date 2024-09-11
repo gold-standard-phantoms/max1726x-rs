@@ -279,10 +279,10 @@ mod tests {
     #[test]
     fn led_cfg_3() {
         // Set the initial value
-        let led_cfg_3 = LedCfg3::from(0xa000);
+        let led_cfg_3 = LedCfg3::from(0x8000);
         assert!(led_cfg_3.full_spd());
         assert!(!led_cfg_3.cust_led_ctrl());
-        assert!(led_cfg_3.dnc());
+        assert!(!led_cfg_3.dnc());
     }
 
     #[test]
