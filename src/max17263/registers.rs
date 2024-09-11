@@ -3,7 +3,7 @@
 /// MAX17263 datasheet
 use modular_bitfield::prelude::*;
 
-use crate::traits::{Model, RegisterResolver};
+use crate::traits::{BitField, Model, RegisterResolver};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Max17263RegisterResolver {
@@ -143,6 +143,10 @@ pub struct LedCfg1 {
     pub led_timer: B3,
 }
 
+impl BitField for LedCfg1 {
+    const REGISTER: u8 = Register::LED_CFG_1;
+}
+
 impl defmt::Format for LedCfg1 {
     fn format(&self, f: defmt::Formatter) {
         // format the bitfields of the register
@@ -196,6 +200,10 @@ pub struct LedCfg2 {
     pub dled: bool,
 }
 
+impl BitField for LedCfg2 {
+    const REGISTER: u8 = Register::LED_CFG_2;
+}
+
 impl defmt::Format for LedCfg2 {
     fn format(&self, f: defmt::Formatter) {
         defmt::write!(
@@ -233,6 +241,10 @@ pub struct LedCfg3 {
     /// FullSpd: When FullSpd = 1, firmware updates LED calculations and timing operations every 175ms. When FullSpd = 0,
     /// LED calculations are only updated every 0.7 seconds.
     pub full_spd: bool,
+}
+
+impl BitField for LedCfg3 {
+    const REGISTER: u8 = Register::LED_CFG_3;
 }
 
 impl defmt::Format for LedCfg3 {

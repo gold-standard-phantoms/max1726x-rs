@@ -23,3 +23,7 @@ pub trait Model {
     /// Temp Register
     const TEMP: u8;
 }
+
+pub trait BitField {
+    const REGISTER: u8;
+}

@@ -3,6 +3,8 @@
 /// https://www.analog.com/media/en/technical-documentation/user-guides/max1726x-modelgauge-m5-ez-user-guide.pdf
 use modular_bitfield::prelude::*;
 
+use crate::traits::BitField;
+
 pub struct Register;
 impl Register {
     /// Status register (00h) (Page 32)
@@ -224,6 +226,11 @@ pub struct HibCfg {
     /// are met. When set to 0, the IC always remains in the active mode of operation.
     en_hib: bool,
 }
+
+impl BitField for HibCfg {
+    const REGISTER: u8 = Register::HIB_CFG;
+}
+
 impl HibCfg {
     /// Hibernate Mode Task Period (s)
     pub fn calc_hibernate_mode_task_period_s(&self) -> u32 {
@@ -307,6 +314,10 @@ pub struct ModelCfg {
     pub refresh: bool,
 }
 
+impl BitField for ModelCfg {
+    const REGISTER: u8 = Register::MODEL_CFG;
+}
+
 /// VEmpty Register (3Ah) (page 28)
 /// Initial Value: 0xA561 (3.3V / 3.88V)
 /// The VEmpty register sets thresholds related to empty detection during operation. Table 11
@@ -324,6 +335,11 @@ pub struct VEmpty {
     /// or 0 to 5.08V. This value is written to 3.88V, which is recommended for most applications.
     pub vr: B7,
 }
+
+impl BitField for VEmpty {
+    const REGISTER: u8 = Register::V_EMPTY;
+}
+
 impl VEmpty {
     /// Get the empty voltage (in mV) target during load
     pub fn calc_empty_voltage_target_mv(&self) -> u16 {
