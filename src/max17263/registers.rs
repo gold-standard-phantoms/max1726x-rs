@@ -96,6 +96,16 @@ impl Register {
     /// The LEDCfg1 register configures the LED driver operation. If any LED activity is initiated, the MAX17263 automatically
     /// wakes up from hibernate mode into active mode.
     pub const LED_CFG_1: u8 = 0x40;
+
+    /// LEDCfg2 Register (4Bh) (page 30)
+    /// Initial value: 0x011f
+    /// The LEDCfg2 register configures the LED driver operations.
+    pub const LED_CFG_2: u8 = 0x4B;
+
+    /// LEDCfg3 Register (37h) (page 31)
+    /// Initial value: 0x8000
+    /// The LEDCfg3 register configures additional LED settings.
+    pub const LED_CFG_3: u8 = 0x37;
 }
 
 /// LEDCfg1 Register (40h) (page 29)
@@ -132,6 +142,7 @@ pub struct LedCfg1 {
     /// LEDTimer: LEDTimer sets the LED termination time according to the table in the datasheet.
     pub led_timer: B3,
 }
+
 impl defmt::Format for LedCfg1 {
     fn format(&self, f: defmt::Formatter) {
         // format the bitfields of the register
@@ -145,6 +156,93 @@ impl defmt::Format for LedCfg1 {
             self.ani_md(),
             self.ani_step(),
             self.led_timer()
+        )
+    }
+}
+
+/// LEDCfg2 Register (4Bh) (page 30)
+/// Initial value: 0x011f
+/// The LEDCfg2 register configures the LED driver operations.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct LedCfg2 {
+    /// Brightness: Set Brightness from 0 to 31 according to the desired brightness of the LED. The IC compensates for battery
+    /// voltage effect on brightness to provide stable brightness over supply voltage.
+    pub brightness: B5,
+
+    /// FBlink: Full Blink Enable. Set FBlink = 1 to blink all LEDs when full is detected. The blinking period is controlled by
+    /// LEDTimer.
+    pub f_blink: bool,
+
+    /// EBlink: Empty Blink Enable. Set EBlink = 1 to blink lowest LED when empty is detected. The blinking period is controlled
+    /// by LEDTimer.
+    pub e_blink: bool,
+
+    /// GBlink: Gray Blink Enable. Set GBlink = 1 to blink gray LED. The blinking period is controlled by LEDTimer.
+    pub g_blink: bool,
+
+    /// EnAutoLEDCnt: Enable auto LED counting. At start up, the auto counting is triggered automatically. To command an
+    /// autodetect, reset and then set this bit.
+    pub en_auto_led_cnt: bool,
+
+    /// VLED: Set VLED to the nominal LED voltage, with a 40mV LSB and a 2.52V range. The firmware compensates the LED
+    /// duty according to the equation in the datasheet.
+    pub vled: B6,
+
+    /// DLED: Set DLED = 1 to configure LED0 to operate as a "empty-battery-LED", which could be a different color from the
+    /// others. For example, in a 5-bar system, 5 white LEDs indicate full, 2 white LEDs indicate 40%, and when down to less
+    /// than half-bar LED (less than 10%), it instead drives the empty LED (LED0).
+    pub dled: bool,
+}
+
+impl defmt::Format for LedCfg2 {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "Brightness: {}, FBlink: {}, EBlink: {}, GBlink: {}, EnAutoLEDCnt: {}, VLED: {}, DLED: {}",
+            self.brightness(),
+            self.f_blink(),
+            self.e_blink(),
+            self.g_blink(),
+            self.en_auto_led_cnt(),
+            self.vled(),
+            self.dled()
+        )
+    }
+}
+
+/// LEDCfg3 Register (37h) (page 31)
+/// Initial value: 0x8000
+/// The LEDCfg3 register configures additional LED settings.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct LedCfg3 {
+    #[skip]
+    __: B13,
+
+    /// CustLEDCtrl: If this bit is 0, LEDs are managed by LEDCfg1/LEDCfg2 registers. If this bit is 1, LEDs are managed by
+    /// CustLED register.
+    pub cust_led_ctrl: bool,
+
+    /// DNC: Do-Not-Change. This bit is automatically calculated at start up according to schematic auto-detection. Do not
+    /// change this bit.
+    pub dnc: bool,
+
+    /// FullSpd: When FullSpd = 1, firmware updates LED calculations and timing operations every 175ms. When FullSpd = 0,
+    /// LED calculations are only updated every 0.7 seconds.
+    pub full_spd: bool,
+}
+
+impl defmt::Format for LedCfg3 {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "FullSpd: {}, CustLEDCtrl: {}, DNC: {}",
+            self.full_spd(),
+            self.cust_led_ctrl(),
+            self.dnc()
         )
     }
 }
@@ -163,6 +261,28 @@ mod tests {
         assert_eq!(led_cfg_1.ani_md(), 0);
         assert_eq!(led_cfg_1.ani_step(), 0);
         assert_eq!(led_cfg_1.led_timer(), 3);
+    }
+
+    #[test]
+    fn led_cfg_2() {
+        // Set the initial value
+        let led_cfg_2 = LedCfg2::from(0x111F);
+        assert_eq!(led_cfg_2.brightness(), 31);
+        assert!(!led_cfg_2.f_blink());
+        assert!(!led_cfg_2.e_blink());
+        assert!(!led_cfg_2.g_blink());
+        assert!(led_cfg_2.en_auto_led_cnt());
+        assert_eq!(led_cfg_2.vled(), 8);
+        assert!(!led_cfg_2.dled());
+    }
+
+    #[test]
+    fn led_cfg_3() {
+        // Set the initial value
+        let led_cfg_3 = LedCfg3::from(0xa000);
+        assert!(led_cfg_3.full_spd());
+        assert!(!led_cfg_3.cust_led_ctrl());
+        assert!(led_cfg_3.dnc());
     }
 
     #[test]
