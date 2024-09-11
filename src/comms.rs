@@ -7,7 +7,7 @@
 use crate::{
     error::Error,
     registers::{FStat, HibCfg, ModelCfg, OutputRegister, Register, SoftWakeup, Status, VEmpty},
-    traits::{Model, RegisterResolver},
+    traits::{BitField, Model, RegisterResolver},
 };
 use core::fmt::Debug;
 use embedded_hal::delay::DelayNs;
@@ -112,16 +112,12 @@ where
         }
     }
 
-    pub fn write_bitfield_to_register<B>(
-        &mut self,
-        register: u8,
-        bitfield: B,
-    ) -> Result<(), Error<E>>
+    pub fn write_bitfield_to_register<B>(&mut self, bitfield: B) -> Result<(), Error<E>>
     where
-        B: Into<u16>,
+        B: Into<u16> + BitField,
     {
         let data = bitfield.into();
-        self.write_register(register, data)
+        self.write_register(B::REGISTER, data)
     }
 
     /// Read a register - return the bytes in the order that they are received (litte-endian/LSB
@@ -141,11 +137,11 @@ where
     }
 
     /// Read a register and convert to the given bitfield
-    pub fn read_register_as_bitfield<B>(&mut self, register: u8) -> Result<B, Error<E>>
+    pub fn read_register_as_bitfield<B>(&mut self) -> Result<B, Error<E>>
     where
-        B: From<u16>,
+        B: From<u16> + BitField,
     {
-        Ok(B::from(self.read_register_as_u16(register)?))
+        Ok(B::from(self.read_register_as_u16(B::REGISTER)?))
     }
 
     /// Battery voltage in V
@@ -270,17 +266,14 @@ where
             // Poll ModelCFG.Refresh(highest bit),
             // proceed to Step 3 when ModelCFG.Refresh=0.
             defmt::info!("Waiting for ModelCFG.Refresh to clear...");
-            while self
-                .read_register_as_bitfield::<ModelCfg>(Register::MODEL_CFG)?
-                .refresh()
-            {
+            while self.read_register_as_bitfield::<ModelCfg>()?.refresh() {
                 delay.delay_ms(10);
             }
             // do not continue until ModelCFG.Refresh==0
 
             // Restore Original HibCFG value
             defmt::info!("Restoring Hibernate Mode");
-            self.write_bitfield_to_register(Register::HIB_CFG, hib_cfg)?;
+            self.write_bitfield_to_register(hib_cfg)?;
 
             // Proceed to Step 3.
         }
