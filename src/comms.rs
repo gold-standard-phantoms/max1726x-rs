@@ -14,11 +14,11 @@ use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c;
 
 #[derive(Debug, defmt::Format)]
-pub struct Max1726x<M, I2C, R>
+pub struct Max1726x<'a, M, I2C, R>
 where
     R: RegisterResolver,
 {
-    i2c: I2C,
+    i2c: &'a mut I2C,
     register_resolver: R,
     _phantom: core::marker::PhantomData<M>,
 }
@@ -57,7 +57,7 @@ pub struct BatteryChargeStatus {
     tte: u16,
 }
 
-impl<M, I2C, E, R> Max1726x<M, I2C, R>
+impl<'a, M, I2C, E, R> Max1726x<'a, M, I2C, R>
 where
     M: Model,
     I2C: i2c::I2c<Error = E>,
@@ -65,17 +65,12 @@ where
     R: RegisterResolver,
 {
     /// Create a new driver instance.
-    pub fn new(i2c: I2C, register_resolver: R) -> Self {
+    pub fn new(i2c: &'a mut I2C, register_resolver: R) -> Self {
         Self {
             i2c,
             register_resolver,
             _phantom: core::marker::PhantomData,
         }
-    }
-
-    /// Destroy driver instance, return I2C bus.
-    pub fn destroy(self) -> I2C {
-        self.i2c
     }
 
     /// Write a register - data should be written little endian/LSB first
