@@ -154,6 +154,94 @@ defmt::bitflags! {
     }
 }
 
+/// Status register (00h) (Page 32)
+/// Register Type: Special
+/// Initial Value: 0x0002 (change to 0x8082 immediately after POR)
+/// The Status register maintains all flags related to alert thresholds and battery insertion or
+/// removal.
+/// 
+/// Bit positions from MSB to LSB (15 to 0):
+/// Br Smx Tmx Vmx Bi Smn Tmn Vmn dSOCi Imx X X Bst Imn POR X
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct StatusBitField {
+    /// X (Don't Care): This bit is undefined and can be logic 0 or 1.
+    #[skip]
+    __: B1,
+    
+    /// POR (Power-On Reset): This bit is set to 1 when the device detects that a software or
+    /// hardware POR event has occurred. This bit must be cleared by system software to detect the
+    /// next POR event. POR is set to 1 at power-up.
+    pub por: bool,
+    
+    /// Imn (Minimum Current Alert Threshold Exceeded): Set to 1 whenever a Current register reading 
+    /// is below the IAlrtTh threshold. May or may not need to be cleared by system software to detect 
+    /// the next event. See the Config.IS bit description. Cleared to 0 at power-up.
+    pub imn: bool,
+    
+    /// Bst (Battery Status): This bit is useful when the IC is used in a host-side application. 
+    /// Set to 0 when a battery is present in the system and set to 1 when the battery is absent. 
+    /// Set to 0 at power-up.
+    pub bst: bool,
+    
+    /// X (Don't Care): These bits are undefined and can be logic 0 or 1.
+    #[skip]
+    __: B2,
+    
+    /// Imx (Maximum Current Alert Threshold Exceeded): Set to 1 whenever a Current register reading 
+    /// is above the IAlrtTh threshold. May or may not need to be cleared by system software to detect 
+    /// the next event. See the Config.IS bit description. Cleared to 0 at power-up.
+    pub imx: bool,
+    
+    /// dSOCi (State of Charge 1% Change Alert): Set to 1 when the RepSOC register crosses an integer 
+    /// percentage boundary such as 50.0%, 51.0%, etc. The bit must be cleared by host software. 
+    /// Set to 1 at power-up.
+    pub d_soc_i: bool,
+    
+    /// Vmn (Minimum Voltage Alert Threshold Exceeded): Set to 1 whenever a VCell register reading 
+    /// is below the VAlrtTh threshold. May or may not need to be cleared by system software to detect 
+    /// the next event. See the Config.VS bit description. Cleared to 0 at power-up.
+    pub vmn: bool,
+    
+    /// Tmn (Minimum Temperature Alert Threshold Exceeded): Set to 1 whenever a Temperature register 
+    /// reading is below the TAlrtTh threshold. May or may not need to be cleared by system software to detect 
+    /// the next event. See the Config.TS bit description. Cleared to 0 at power-up.
+    pub tmn: bool,
+    
+    /// Smn (Minimum SOC Alert Threshold Exceeded): Set to 1 when the SOC is below the SAlrtTh threshold. 
+    /// May or may not need to be cleared by system software to detect the next event. See the Config.SS 
+    /// description. Cleared to 0 at power-up.
+    pub smn: bool,
+    
+    /// Bi (Battery Insertion): Set to 1 when the device detects that a battery has been inserted into 
+    /// the system by monitoring the TH pin. Must be cleared by system software to detect the next insertion 
+    /// event. Set to 0 at power-up.
+    pub bi: bool,
+    
+    /// Vmx (Maximum Voltage Alert Threshold Exceeded): Set to 1 whenever a VCell register reading 
+    /// is above the VAlrtTh threshold. May or may not need to be cleared by system software to detect 
+    /// the next event. See the Config.VS bit description. Cleared to 0 at power-up.
+    pub vmx: bool,
+    
+    /// Tmx (Maximum Temperature Alert Threshold Exceeded): Set to 1 whenever a Temperature register 
+    /// reading is above the TAlrtTh threshold. May or may not need to be cleared by system software to detect 
+    /// the next event. See the Config.TS bit description. Cleared to 0 at power-up.
+    pub tmx: bool,
+    
+    /// Smx (Maximum SOC Alert Threshold Exceeded): Set to 1 when the SOC is above the SAlrtTh threshold. 
+    /// May or may not need to be cleared by system software to detect the next event. See the Config.SS 
+    /// description. Cleared to 0 at power-up.
+    pub smx: bool,
+    
+    /// Br (Battery Removal): Set to 1 when the system detects that a battery has been removed from 
+    /// the system. Must be cleared by system software to detect the next removal event. Set to 1 at power-up.
+    pub br: bool,
+}
+impl BitField for StatusBitField {
+    const REGISTER: u8 = Register::STATUS;
+}
+
 defmt::bitflags! {
     /// FStat Register (3Dh) (page 39)
     /// Register Type: Special
