@@ -66,6 +66,36 @@ impl Register {
     /// The ModelCFG register controls basic options of the EZ algorithm. Table 12 shows the register
     /// format.
     pub const MODEL_CFG: u8 = 0xDB;
+
+    /// RCell Register (14h)
+    /// Register Type: Resistance
+    /// Initial Value: 0x0290 (160mΩ)
+    /// The RCell register provides the calculated internal resistance of the cell. RCell is determined by
+    /// comparing open-circuit voltage (VFOCV) against measured voltage (VCell) over a long time
+    /// period while under load or charge current.
+    pub const R_CELL: u8 = 0x14;
+
+    /// VFOCV Register (FBh)
+    /// Register Type: Voltage
+    /// The VFOCV register contains the calculated open-circuit voltage of the cell as determined by
+    /// the voltage fuel gauge. This value is used in other internal calculations
+    pub const V_FOCV: u8 = 0xFB;
+
+    /// TTF Register (20h)
+    /// Register Type: Time
+    /// The TTF register holds the estimated time to full for the application under present conditions.
+    /// The TTF value is determined by learning the constant current and constant voltage portions of
+    /// the charge cycle based on experience of prior charge cycles.
+    pub const TTF: u8 = 0x20;
+
+    /// TTE Register (11h)
+    /// Register Type: Time
+    /// The TTE register holds the estimated time to empty for the application under present
+    /// temperature and load conditions. The TTE value is determined by relating AvCap with
+    /// AvgCurrent.
+    /// The corresponding AvgCurrent filtering gives a delay in TTE, but provides more stable results.
+    /// The LSB of the TTE register is 5.625s.
+    pub const TTE: u8 = 0x11;
 }
 
 pub struct OutputRegister;
@@ -159,7 +189,7 @@ defmt::bitflags! {
 /// Initial Value: 0x0002 (change to 0x8082 immediately after POR)
 /// The Status register maintains all flags related to alert thresholds and battery insertion or
 /// removal.
-/// 
+///
 /// Bit positions from MSB to LSB (15 to 0):
 /// Br Smx Tmx Vmx Bi Smn Tmn Vmn dSOCi Imx X X Bst Imn POR X
 #[bitfield(bits = 16)]
@@ -169,72 +199,72 @@ pub struct StatusBitField {
     /// X (Don't Care): This bit is undefined and can be logic 0 or 1.
     #[skip]
     __: B1,
-    
+
     /// POR (Power-On Reset): This bit is set to 1 when the device detects that a software or
     /// hardware POR event has occurred. This bit must be cleared by system software to detect the
     /// next POR event. POR is set to 1 at power-up.
     pub por: bool,
-    
-    /// Imn (Minimum Current Alert Threshold Exceeded): Set to 1 whenever a Current register reading 
-    /// is below the IAlrtTh threshold. May or may not need to be cleared by system software to detect 
+
+    /// Imn (Minimum Current Alert Threshold Exceeded): Set to 1 whenever a Current register reading
+    /// is below the IAlrtTh threshold. May or may not need to be cleared by system software to detect
     /// the next event. See the Config.IS bit description. Cleared to 0 at power-up.
     pub imn: bool,
-    
-    /// Bst (Battery Status): This bit is useful when the IC is used in a host-side application. 
-    /// Set to 0 when a battery is present in the system and set to 1 when the battery is absent. 
+
+    /// Bst (Battery Status): This bit is useful when the IC is used in a host-side application.
+    /// Set to 0 when a battery is present in the system and set to 1 when the battery is absent.
     /// Set to 0 at power-up.
     pub bst: bool,
-    
+
     /// X (Don't Care): These bits are undefined and can be logic 0 or 1.
     #[skip]
     __: B2,
-    
-    /// Imx (Maximum Current Alert Threshold Exceeded): Set to 1 whenever a Current register reading 
-    /// is above the IAlrtTh threshold. May or may not need to be cleared by system software to detect 
+
+    /// Imx (Maximum Current Alert Threshold Exceeded): Set to 1 whenever a Current register reading
+    /// is above the IAlrtTh threshold. May or may not need to be cleared by system software to detect
     /// the next event. See the Config.IS bit description. Cleared to 0 at power-up.
     pub imx: bool,
-    
-    /// dSOCi (State of Charge 1% Change Alert): Set to 1 when the RepSOC register crosses an integer 
-    /// percentage boundary such as 50.0%, 51.0%, etc. The bit must be cleared by host software. 
+
+    /// dSOCi (State of Charge 1% Change Alert): Set to 1 when the RepSOC register crosses an integer
+    /// percentage boundary such as 50.0%, 51.0%, etc. The bit must be cleared by host software.
     /// Set to 1 at power-up.
     pub d_soc_i: bool,
-    
-    /// Vmn (Minimum Voltage Alert Threshold Exceeded): Set to 1 whenever a VCell register reading 
-    /// is below the VAlrtTh threshold. May or may not need to be cleared by system software to detect 
+
+    /// Vmn (Minimum Voltage Alert Threshold Exceeded): Set to 1 whenever a VCell register reading
+    /// is below the VAlrtTh threshold. May or may not need to be cleared by system software to detect
     /// the next event. See the Config.VS bit description. Cleared to 0 at power-up.
     pub vmn: bool,
-    
-    /// Tmn (Minimum Temperature Alert Threshold Exceeded): Set to 1 whenever a Temperature register 
-    /// reading is below the TAlrtTh threshold. May or may not need to be cleared by system software to detect 
+
+    /// Tmn (Minimum Temperature Alert Threshold Exceeded): Set to 1 whenever a Temperature register
+    /// reading is below the TAlrtTh threshold. May or may not need to be cleared by system software to detect
     /// the next event. See the Config.TS bit description. Cleared to 0 at power-up.
     pub tmn: bool,
-    
-    /// Smn (Minimum SOC Alert Threshold Exceeded): Set to 1 when the SOC is below the SAlrtTh threshold. 
-    /// May or may not need to be cleared by system software to detect the next event. See the Config.SS 
+
+    /// Smn (Minimum SOC Alert Threshold Exceeded): Set to 1 when the SOC is below the SAlrtTh threshold.
+    /// May or may not need to be cleared by system software to detect the next event. See the Config.SS
     /// description. Cleared to 0 at power-up.
     pub smn: bool,
-    
-    /// Bi (Battery Insertion): Set to 1 when the device detects that a battery has been inserted into 
-    /// the system by monitoring the TH pin. Must be cleared by system software to detect the next insertion 
+
+    /// Bi (Battery Insertion): Set to 1 when the device detects that a battery has been inserted into
+    /// the system by monitoring the TH pin. Must be cleared by system software to detect the next insertion
     /// event. Set to 0 at power-up.
     pub bi: bool,
-    
-    /// Vmx (Maximum Voltage Alert Threshold Exceeded): Set to 1 whenever a VCell register reading 
-    /// is above the VAlrtTh threshold. May or may not need to be cleared by system software to detect 
+
+    /// Vmx (Maximum Voltage Alert Threshold Exceeded): Set to 1 whenever a VCell register reading
+    /// is above the VAlrtTh threshold. May or may not need to be cleared by system software to detect
     /// the next event. See the Config.VS bit description. Cleared to 0 at power-up.
     pub vmx: bool,
-    
-    /// Tmx (Maximum Temperature Alert Threshold Exceeded): Set to 1 whenever a Temperature register 
-    /// reading is above the TAlrtTh threshold. May or may not need to be cleared by system software to detect 
+
+    /// Tmx (Maximum Temperature Alert Threshold Exceeded): Set to 1 whenever a Temperature register
+    /// reading is above the TAlrtTh threshold. May or may not need to be cleared by system software to detect
     /// the next event. See the Config.TS bit description. Cleared to 0 at power-up.
     pub tmx: bool,
-    
-    /// Smx (Maximum SOC Alert Threshold Exceeded): Set to 1 when the SOC is above the SAlrtTh threshold. 
-    /// May or may not need to be cleared by system software to detect the next event. See the Config.SS 
+
+    /// Smx (Maximum SOC Alert Threshold Exceeded): Set to 1 when the SOC is above the SAlrtTh threshold.
+    /// May or may not need to be cleared by system software to detect the next event. See the Config.SS
     /// description. Cleared to 0 at power-up.
     pub smx: bool,
-    
-    /// Br (Battery Removal): Set to 1 when the system detects that a battery has been removed from 
+
+    /// Br (Battery Removal): Set to 1 when the system detects that a battery has been removed from
     /// the system. Must be cleared by system software to detect the next removal event. Set to 1 at power-up.
     pub br: bool,
 }
@@ -479,6 +509,200 @@ impl SoftWakeup {
     pub const SOFT_WAKEUP: u16 = 0x0090;
 }
 
+/// RCell Register (14h)
+/// Register Type: Resistance
+/// Initial Value: 0x0290 (160mΩ)
+/// The RCell register provides the calculated internal resistance of the cell.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct RCell {
+    /// The cell's internal resistance value
+    /// LSB = 1/4096Ω
+    pub resistance: u16,
+}
+
+impl BitField for RCell {
+    const REGISTER: u8 = Register::R_CELL;
+}
+
+impl RCell {
+    /// Convert the register value to milliohms
+    pub fn to_milliohms(&self) -> f32 {
+        (self.resistance() as f32 * 1000.0) / 4096.0
+    }
+
+    /// Create a new RCell register with the specified resistance in milliohms
+    pub fn from_milliohms(milliohms: f32) -> Self {
+        let resistance = ((milliohms * 4096.0) / 1000.0) as u16;
+        Self::new().with_resistance(resistance)
+    }
+}
+
+impl defmt::Format for RCell {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "RCell: raw: {}, milliohms: {}",
+            self.resistance(),
+            self.to_milliohms()
+        )
+    }
+}
+
+/// VFOCV Register (FBh)
+/// Register Type: Voltage
+/// The VFOCV register contains the calculated open-circuit voltage of the cell as determined by
+/// the voltage fuel gauge. This value is used in other internal calculations
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct VFocv {
+    /// The cell's open-circuit voltage value
+    /// LSB = 78.125µV
+    pub voltage: u16,
+}
+
+impl BitField for VFocv {
+    const REGISTER: u8 = Register::V_FOCV;
+}
+
+impl VFocv {
+    /// Convert the register value to millivolts
+    pub fn to_millivolts(&self) -> f32 {
+        (self.voltage() as f32 * 78.125) / 1000.0
+    }
+
+    /// Create a new VFocv register with the specified voltage in millivolts
+    pub fn from_millivolts(millivolts: f32) -> Self {
+        let voltage = ((millivolts * 1000.0) / 78.125) as u16;
+        Self::new().with_voltage(voltage)
+    }
+}
+
+impl defmt::Format for VFocv {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "VFocv: raw: {}, millivolts: {}",
+            self.voltage(),
+            self.to_millivolts()
+        )
+    }
+}
+
+/// TTF Register (20h)
+/// Register Type: Time
+/// The TTF register holds the estimated time to full for the application under present conditions.
+/// The TTF value is determined by learning the constant current and constant voltage portions of
+/// the charge cycle based on experience of prior charge cycles. Time to full is then estimated by
+/// comparing present charge current to the charge termination current. Operation of the TTF
+/// register assumes all charge profiles are consistent in the application.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct Ttf {
+    /// The time to full value
+    /// LSB = 5.625 seconds
+    pub time: u16,
+}
+
+impl BitField for Ttf {
+    const REGISTER: u8 = Register::TTF;
+}
+
+impl Ttf {
+    /// Convert the register value to seconds
+    pub fn to_seconds(&self) -> f32 {
+        self.time() as f32 * 5.625
+    }
+
+    /// Convert the register value to minutes
+    pub fn to_minutes(&self) -> f32 {
+        self.to_seconds() / 60.0
+    }
+
+    /// Convert the register value to hours
+    pub fn to_hours(&self) -> f32 {
+        self.to_minutes() / 60.0
+    }
+
+    /// Create a new TTF register with the specified time in seconds
+    pub fn from_seconds(seconds: f32) -> Self {
+        let time = (seconds / 5.625) as u16;
+        Self::new().with_time(time)
+    }
+}
+
+impl defmt::Format for Ttf {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "TTF: raw: {}, seconds: {}, minutes: {}, hours: {}",
+            self.time(),
+            self.to_seconds(),
+            self.to_minutes(),
+            self.to_hours()
+        )
+    }
+}
+
+/// TTE Register (11h)
+/// Register Type: Time
+/// The TTE register holds the estimated time to empty for the application under present
+/// temperature and load conditions. The TTE value is determined by relating AvCap with
+/// AvgCurrent.
+/// The corresponding AvgCurrent filtering gives a delay in TTE, but provides more stable results.
+/// The LSB of the TTE register is 5.625s.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct Tte {
+    /// The time to empty value
+    /// LSB = 5.625 seconds
+    pub time: u16,
+}
+
+impl BitField for Tte {
+    const REGISTER: u8 = Register::TTE;
+}
+
+impl Tte {
+    /// Convert the register value to seconds
+    pub fn to_seconds(&self) -> f32 {
+        self.time() as f32 * 5.625
+    }
+
+    /// Convert the register value to minutes
+    pub fn to_minutes(&self) -> f32 {
+        self.to_seconds() / 60.0
+    }
+
+    /// Convert the register value to hours
+    pub fn to_hours(&self) -> f32 {
+        self.to_minutes() / 60.0
+    }
+
+    /// Create a new TTE register with the specified time in seconds
+    pub fn from_seconds(seconds: f32) -> Self {
+        let time = (seconds / 5.625) as u16;
+        Self::new().with_time(time)
+    }
+}
+
+impl defmt::Format for Tte {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "TTE: raw: {}, seconds: {}, minutes: {}, hours: {}",
+            self.time(),
+            self.to_seconds(),
+            self.to_minutes(),
+            self.to_hours()
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -513,5 +737,59 @@ mod tests {
         assert!(!model_cfg.v_chg());
         assert_eq!(model_cfg.model_id(), 0);
         assert!(!model_cfg.r100());
+    }
+    #[test]
+    fn rcell_conversion() {
+        // Test the initial value from datasheet (160mΩ)
+        let rcell = RCell::from(0x0290);
+        assert_eq!(rcell.to_milliohms() as u32, 160);
+
+        // Test roundtrip conversion
+        let rcell = RCell::from_milliohms(160.0);
+        // account for rounding errors
+        assert!(rcell.to_milliohms() > 159.0);
+        assert!(rcell.to_milliohms() < 161.0);
+    }
+    #[test]
+    fn vfocv_conversion() {
+        // Test a known voltage value (e.g., 3.7V = 3700mV)
+        let vfocv = VFocv::from_millivolts(3700.0);
+        assert!((vfocv.to_millivolts() - 3700.0).abs() < 0.1); // Allow for small rounding errors
+
+        // Test roundtrip conversion
+        let test_voltage = 4200.0; // 4.2V
+        let vfocv = VFocv::from_millivolts(test_voltage);
+        let result = vfocv.to_millivolts();
+        assert!((result - test_voltage).abs() < 0.1); // Allow for small rounding errors
+    }
+    #[test]
+    fn ttf_conversion() {
+        // Test conversion from 1 hour
+        let ttf = Ttf::from_seconds(3600.0);
+        assert!((ttf.to_hours() - 1.0).abs() < 0.01); // Allow for small rounding errors
+        assert!((ttf.to_minutes() - 60.0).abs() < 0.1);
+        assert!((ttf.to_seconds() - 3600.0).abs() < 1.0);
+
+        // Test roundtrip conversion with 30 minutes
+        let test_seconds = 1800.0;
+        let ttf = Ttf::from_seconds(test_seconds);
+        let result = ttf.to_seconds();
+        assert!((result - test_seconds).abs() < 1.0); // Allow for small rounding errors
+        assert!((ttf.to_minutes() - 30.0).abs() < 0.1);
+    }
+    #[test]
+    fn tte_conversion() {
+        // Test conversion from 2 hours
+        let tte = Tte::from_seconds(7200.0);
+        assert!((tte.to_hours() - 2.0).abs() < 0.01); // Allow for small rounding errors
+        assert!((tte.to_minutes() - 120.0).abs() < 0.1);
+        assert!((tte.to_seconds() - 7200.0).abs() < 1.0);
+
+        // Test roundtrip conversion with 45 minutes
+        let test_seconds = 2700.0;
+        let tte = Tte::from_seconds(test_seconds);
+        let result = tte.to_seconds();
+        assert!((result - test_seconds).abs() < 1.0); // Allow for small rounding errors
+        assert!((tte.to_minutes() - 45.0).abs() < 0.1);
     }
 }

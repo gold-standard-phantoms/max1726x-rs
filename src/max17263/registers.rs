@@ -106,6 +106,16 @@ impl Register {
     /// Initial value: 0x8000
     /// The LEDCfg3 register configures additional LED settings.
     pub const LED_CFG_3: u8 = 0x37;
+
+    /// FullCapRep Register (10h)
+    /// Register Type: Capacity
+    /// This register reports the full capacity that goes with RepCap, generally used for reporting to the user.
+    /// A new full-capacity value is calculated at the end of every charge cycle in the application.
+    pub const FULL_CAP_REP: u8 = 0x10;
+    /// AvgVCell Register (19h)
+    /// Register Type: Voltage
+    /// The AvgVCell register reports an average of the VCell register readings
+    pub const AVG_V_CELL: u8 = 0x19;
 }
 
 /// LEDCfg1 Register (40h) (page 29)
@@ -259,6 +269,96 @@ impl defmt::Format for LedCfg3 {
     }
 }
 
+/// FullCapRep Register (10h)
+/// Register Type: Capacity
+/// This register reports the full capacity that goes with RepCap, generally used for reporting to the user.
+/// A new full-capacity value is calculated at the end of every charge cycle in the application.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct FullCapRep {
+    /// The full capacity value
+    /// LSb = 5.0µVh/RSENSE
+    pub capacity: u16,
+}
+
+impl BitField for FullCapRep {
+    const REGISTER: u8 = Register::FULL_CAP_REP;
+}
+
+impl FullCapRep {
+    /// Convert the register value to amp-hours
+    pub fn to_amp_hours(&self, r_sense: f32) -> f32 {
+        self.capacity() as f32 * 5.0e-6 / r_sense
+    }
+
+    /// Convert the register value to milliamp-hours
+    pub fn to_milliamp_hours(&self, r_sense: f32) -> f32 {
+        self.to_amp_hours(r_sense) * 1000.0
+    }
+
+    /// Create a new FullCapRep register with the specified capacity in milliamp-hours
+    pub fn from_milliamp_hours(milliamp_hours: f32, r_sense: f32) -> Self {
+        let capacity = ((milliamp_hours * r_sense) / (5.0e-3)) as u16;
+        Self::new().with_capacity(capacity)
+    }
+}
+
+impl defmt::Format for FullCapRep {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "FullCapRep: raw: {}",
+            self.capacity(),
+        )
+    }
+}
+
+/// AvgVCell Register (19h)
+/// Register Type: Voltage
+/// The AvgVCell register reports an average of the VCell register readings
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Default, Debug)]
+pub struct AvgVCell {
+    /// The averaged cell voltage value
+    /// LSb = 78.125µV
+    pub voltage: u16,
+}
+
+impl BitField for AvgVCell {
+    const REGISTER: u8 = Register::AVG_V_CELL;
+}
+
+impl AvgVCell {
+    /// Convert the register value to volts
+    pub fn to_volts(&self) -> f32 {
+        self.voltage() as f32 * 78.125e-6
+    }
+
+    /// Convert the register value to millivolts
+    pub fn to_millivolts(&self) -> f32 {
+        self.to_volts() * 1000.0
+    }
+
+    /// Create a new AvgVCell register with the specified voltage in millivolts
+    pub fn from_millivolts(millivolts: f32) -> Self {
+        let voltage = ((millivolts * 1000.0) / 78.125) as u16;
+        Self::new().with_voltage(voltage)
+    }
+}
+
+impl defmt::Format for AvgVCell {
+    fn format(&self, f: defmt::Formatter) {
+        defmt::write!(
+            f,
+            "AvgVCell: raw: {}, millivolts: {}",
+            self.voltage(),
+            self.to_millivolts()
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -360,5 +460,33 @@ mod tests {
 
         assert_eq!(resolver.register_to_time(0x0000), 0.0);
         assert!((resolver.register_to_time(0xFFFF) - 102.3984 * 3600.0).abs() < 1.0);
+    }
+
+    #[test]
+    fn full_cap_rep_conversion() {
+        let r_sense = 0.010; // 10mΩ
+        
+        // Test conversion with typical battery capacity (2000mAh)
+        let full_cap = FullCapRep::from_milliamp_hours(2000.0, r_sense as f32);
+        assert!((full_cap.to_milliamp_hours(r_sense as f32) - 2000.0).abs() < 1.0);
+        
+        // Test roundtrip conversion
+        let test_capacity = 3000.0; // 3000mAh
+        let full_cap = FullCapRep::from_milliamp_hours(test_capacity, r_sense as f32);
+        let result = full_cap.to_milliamp_hours(r_sense as f32);
+        assert!((result - test_capacity).abs() < 1.0);
+    }
+
+    #[test]
+    fn avg_vcell_conversion() {
+        // Test typical battery voltage (3.7V)
+        let avg_vcell = AvgVCell::from_millivolts(3700.0);
+        assert!((avg_vcell.to_millivolts() - 3700.0).abs() < 0.1);
+
+        // Test roundtrip conversion
+        let test_voltage = 4200.0; // 4.2V
+        let avg_vcell = AvgVCell::from_millivolts(test_voltage);
+        let result = avg_vcell.to_millivolts();
+        assert!((result - test_voltage).abs() < 0.1);
     }
 }
