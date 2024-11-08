@@ -18,7 +18,7 @@ pub trait RegisterResolver {
 pub trait Model {
     /// VCell Register
     const V_CELL: u8;
-    ///Current Register
+    /// Current Register
     const CURRENT: u8;
     /// Temp Register
     const TEMP: u8;
