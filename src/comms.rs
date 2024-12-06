@@ -10,6 +10,7 @@ use crate::{
     traits::{BitField, Model, RegisterResolver},
 };
 use core::fmt::Debug;
+use defmt::debug;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c;
 
@@ -76,6 +77,7 @@ where
     /// Write a register - data should be written little endian/LSB first
     pub fn write_register(&mut self, register: u8, data: u16) -> Result<(), Error<E>> {
         let payload: [u8; 3] = [register, (data & 0xFF) as u8, ((data & 0xFF00) >> 8) as u8];
+        debug!("Data {:X} written to register {:X}", data, register);
         self.i2c.write(ADDR, &payload).map_err(Error::I2c)
     }
 
@@ -119,10 +121,15 @@ where
     /// first)
     pub fn read_register(&mut self, register: u8) -> Result<[u8; 2], Error<E>> {
         let mut data = [0u8; 2];
-        self.i2c
+        let data = self
+            .i2c
             .write_read(ADDR, &[register], &mut data)
             .map_err(Error::I2c)
-            .and(Ok(data))
+            .and(Ok(data));
+        if let Ok(data) = data {
+            debug!("Data {:X} read from register {:X}", data, register);
+        }
+        data
     }
 
     /// Read a register into a u16
@@ -245,8 +252,16 @@ where
             // 2.1 OPTION 1 EZ Config (No INI file is needed):
             defmt::info!("Option 1 EZ Config");
             defmt::info!("Writing DESIGN_CAP, I_CHG_TERM, V_EMPTY");
-            self.write_register(Register::DESIGN_CAP, ez_config.design_cap_mah)?;
-            self.write_register(Register::I_CHG_TERM, ez_config.i_chg_term_ma)?;
+            self.write_register(
+                Register::DESIGN_CAP,
+                self.register_resolver
+                    .capacity_to_register(ez_config.design_cap_mah as f64 / 1000.0),
+            )?;
+            self.write_register(
+                Register::I_CHG_TERM,
+                self.register_resolver
+                    .current_to_register(ez_config.i_chg_term_ma as f64 / 1000.0),
+            )?;
             self.write_register(
                 Register::V_EMPTY,
                 u16::from_le_bytes(ez_config.v_empty_mv.into_bytes()),
