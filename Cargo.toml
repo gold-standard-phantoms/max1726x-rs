@@ -13,3 +13,4 @@ defmt = "0.3"
 embedded-hal = { version = "1", features = ["defmt-03"] }
 bitfield = "0.15"
 modular-bitfield = "0.11"
+libm = "0.2.11"
