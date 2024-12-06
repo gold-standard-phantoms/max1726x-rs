@@ -444,14 +444,14 @@ impl BitField for ModelCfg {
 #[repr(u16)]
 #[derive(Default, Debug)]
 pub struct VEmpty {
-    /// VE: Empty Voltage Target, during load. The fuel gauge provides capacity and percentage
-    /// relative to the empty voltage target, eventually declaring 0% at VE. A 10mV resolution gives a
-    /// range of 0 to 5.11V. This value is written to 3.3V after reset.
-    pub ve: B9,
     /// VR: Recovery Voltage. Sets the voltage level for clearing empty detection. Once the cell voltage
     /// rises above this point, empty voltage detection is re-enabled. A 40mV resolution gives a range
     /// or 0 to 5.08V. This value is written to 3.88V, which is recommended for most applications.
     pub vr: B7,
+    /// VE: Empty Voltage Target, during load. The fuel gauge provides capacity and percentage
+    /// relative to the empty voltage target, eventually declaring 0% at VE. A 10mV resolution gives a
+    /// range of 0 to 5.11V. This value is written to 3.3V after reset.
+    pub ve: B9,
 }
 
 impl BitField for VEmpty {
