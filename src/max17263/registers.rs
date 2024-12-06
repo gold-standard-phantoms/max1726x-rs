@@ -64,6 +64,48 @@ impl RegisterResolver for Max17263RegisterResolver {
     fn register_to_time(&self, register: u16) -> f64 {
         register as f64 * 5.625
     }
+
+    /// Convert amp-hours to capacity register value
+    /// LSb size: 5.0µVh / RSENSE
+    fn capacity_to_register(&self, amp_hours: f64) -> u16 {
+        libm::round((amp_hours * self.r_sense) / 5.0e-6) as u16
+    }
+
+    /// Convert percentage to register value
+    /// LSb size: 1/256%
+    fn percentage_to_register(&self, percentage: f64) -> u16 {
+        libm::round(percentage * 256.0) as u16
+    }
+
+    /// Convert volts to register value
+    /// LSb size: 78.125uV
+    fn voltage_to_register(&self, volts: f64) -> u16 {
+        libm::round(volts / 78.125e-6) as u16
+    }
+
+    /// Convert amps to current register value
+    /// LSb size: 1.5625uV / RSENSE
+    fn current_to_register(&self, amps: f64) -> u16 {
+        libm::round((amps * self.r_sense) / 1.5625e-6) as i16 as u16
+    }
+
+    /// Convert celsius to temperature register value
+    /// LSb size: 1/256°C
+    fn temperature_to_register(&self, celsius: f64) -> u16 {
+        libm::round(celsius * 256.0) as i16 as u16
+    }
+
+    /// Convert ohms to resistance register value
+    /// LSb size: 1/4096Ω
+    fn resistance_to_register(&self, ohms: f64) -> u16 {
+        libm::round(ohms * 4096.0) as u16
+    }
+
+    /// Convert seconds to time register value
+    /// LSb size: 5.625s
+    fn time_to_register(&self, seconds: f64) -> u16 {
+        libm::round(seconds / 5.625) as u16
+    }
 }
 
 pub struct Register;
@@ -488,5 +530,89 @@ mod tests {
         let avg_vcell = AvgVCell::from_millivolts(test_voltage);
         let result = avg_vcell.to_millivolts();
         assert!((result - test_voltage).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_capacity_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [0.0, 0.001, 0.1, 1.0, 10.0];
+        
+        for &value in &test_values {
+            let register = resolver.capacity_to_register(value);
+            let result = resolver.register_to_capacity(register);
+            assert!((result - value).abs() < 1e-6, "Capacity roundtrip failed for {}", value);
+        }
+    }
+
+    #[test]
+    fn test_percentage_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [0.0, 0.5, 50.0, 99.9, 255.0];
+        
+        for &value in &test_values {
+            let register = resolver.percentage_to_register(value);
+            let result = resolver.register_to_percentage(register);
+            assert!((result - value).abs() < 0.01, "Percentage roundtrip failed for {}", value);
+        }
+    }
+
+    #[test]
+    fn test_voltage_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [0.0, 1.0, 3.3, 3.7, 4.2];
+        
+        for &value in &test_values {
+            let register = resolver.voltage_to_register(value);
+            let result = resolver.register_to_voltage(register);
+            assert!((result - value).abs() < 1e-4, "Voltage roundtrip failed for {}", value);
+        }
+    }
+
+    #[test]
+    fn test_current_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [-5.0, -1.0, 0.0, 1.0, 5.0];
+        
+        for &value in &test_values {
+            let register = resolver.current_to_register(value);
+            let result = resolver.register_to_current(register);
+            assert!((result - value).abs() < 1e-4, "Current roundtrip failed for {}", value);
+        }
+    }
+
+    #[test]
+    fn test_temperature_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [-40.0, 0.0, 25.0, 45.0, 85.0];
+        
+        for &value in &test_values {
+            let register = resolver.temperature_to_register(value);
+            let result = resolver.register_to_temperature(register);
+            assert!((result - value).abs() < 0.01, "Temperature roundtrip failed for {}", value);
+        }
+    }
+
+    #[test]
+    fn test_resistance_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [0.0, 0.01, 1.0, 10.0, 15.0];
+        
+        for &value in &test_values {
+            let register = resolver.resistance_to_register(value);
+            let result = resolver.register_to_resistance(register);
+            assert!((result - value).abs() < 1e-4, "Resistance roundtrip failed for {}", value);
+        }
+    }
+
+    #[test]
+    fn test_time_roundtrip() {
+        let resolver = Max17263RegisterResolver::new(0.010);
+        let test_values = [0.0, 60.0, 3600.0, 86400.0];
+        
+        for &value in &test_values {
+            let register = resolver.time_to_register(value);
+            let result = resolver.register_to_time(register);
+            assert!((result - value).abs() < 6.0, "Time roundtrip failed for {}", value);
+        }
     }
 }
